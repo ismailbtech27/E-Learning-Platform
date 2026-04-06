@@ -21,6 +21,7 @@ export default function CourseDetail() {
 
     const [expandedModule, setExpandedModule] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isEnrolling, setIsEnrolling] = useState(false);
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -83,6 +84,34 @@ export default function CourseDetail() {
         setExpandedModule(expandedModule === moduleId ? null : moduleId);
     };
 
+    const handleEnroll = async () => {
+        if (!user) {
+            alert("Please login to enroll.");
+            return;
+        }
+        setIsEnrolling(true);
+        try {
+            const res = await fetch(`http://localhost:8080/api/enrollments/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user.username })
+            });
+
+            if (res.ok) {
+                alert("Successfully enrolled!");
+                navigate('/profile');
+            } else {
+                const text = await res.text();
+                alert(text || "Failed to enroll. You might already be enrolled.");
+            }
+        } catch (error) {
+            console.error("Enrollment error:", error);
+            alert("An error occurred during enrollment.");
+        } finally {
+            setIsEnrolling(false);
+        }
+    };
+
     if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white flex items-center justify-center">Loading...</div>;
     if (!course) return <div className="min-h-screen bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white flex items-center justify-center">Course not found.</div>;
 
@@ -111,11 +140,20 @@ export default function CourseDetail() {
                 {viewMode === 'video' && (
                     <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-white dark:bg-[#121212]">
                         <div className="max-w-4xl mx-auto">
-                            <div className="flex items-center gap-4 mb-6">
-                                <button onClick={() => navigate('/courses')} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
-                                    ← Back to Courses
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                <div className="flex items-center gap-4">
+                                    <button onClick={() => navigate('/courses')} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+                                        ← Back to Courses
+                                    </button>
+                                    <h1 className="text-2xl font-bold">{course.title}</h1>
+                                </div>
+                                <button 
+                                    onClick={handleEnroll} 
+                                    disabled={isEnrolling}
+                                    className="px-6 py-2 bg-blue-600 dark:bg-[#00e5ff] text-white dark:text-black font-semibold rounded-lg hover:bg-blue-700 dark:hover:bg-[#00b8cc] transition-colors shadow-md disabled:opacity-50 whitespace-nowrap"
+                                >
+                                    {isEnrolling ? 'Enrolling...' : 'Enroll in Course'}
                                 </button>
-                                <h1 className="text-2xl font-bold">{course.title}</h1>
                             </div>
 
                             {/* Video Player Container */}
